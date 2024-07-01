@@ -51,6 +51,7 @@ temp_df <- as.data.frame(temp_at_time-273.15, xy = TRUE, na.rm = TRUE)
 colnames(temp_df) <- c("lon", "lat", "Degree_C")
 
 # Plot the data using ggplot2
+pdf("Map_1day.pdf", width = 8, height = 7)
 ggplot(temp_df, aes(x = lon, y = lat, fill = Degree_C)) +
   geom_raster() +
   scale_fill_viridis_c() +
@@ -58,6 +59,7 @@ ggplot(temp_df, aes(x = lon, y = lat, fill = Degree_C)) +
   labs(title = paste("Surface Temperature at Time", specific_time_index),
        x = "Longitude",
        y = "Latitude")
+dev.off()
 
 # 3. Plot a lake variable for the average over time for a whole region - GLOBAL LAKES
 
@@ -69,6 +71,7 @@ mean_temp_df <- as.data.frame(mean_temp-273.15, xy = TRUE, na.rm = TRUE)
 colnames(mean_temp_df) <- c("lon", "lat", "Degree_C")
 
 # Plot the data using ggplot2
+pdf("Map_mean.pdf", width = 8, height = 7)
 ggplot(mean_temp_df, aes(x = lon, y = lat, fill = Degree_C)) +
   geom_raster() +
   scale_fill_viridis_c() +
@@ -76,6 +79,7 @@ ggplot(mean_temp_df, aes(x = lon, y = lat, fill = Degree_C)) +
   labs(title = "Mean Surface Temperature",
        x = "Longitude",
        y = "Latitude")
+dev.off()
 
 # (OPTIONAL) 4. Animation for the first X days - GLOBAL LAKES
 #install.packages("gganimate")
@@ -111,7 +115,7 @@ p <- ggplot(temp_df_animate, aes(x = lon, y = lat, fill = Degree_C)) +
 animate(p, nframes = num_time_steps, fps = 10, width = 800, height = 600, renderer = gifski_renderer())
 
 # Save the animation to a file
-anim_save("surftemp_animation.gif", animation = last_animation())
+anim_save("Map_animation.gif", animation = last_animation())
 
 #····································SELECT ONE POINT, COMPARISON WITH LOCAL LAKES·····················...
 ##········································································································
@@ -124,6 +128,8 @@ anim_save("surftemp_animation.gif", animation = last_animation())
 # Lake Kivu: 2.0448° S, 29.1856° E
 specific_lat <- -2.04 #-2.04  # Replace with your latitude Spain: 39; Turkey: 39 SA: -29
 specific_lon <- 29.18 #29.18  # Replace with your longitude Spain: -5 Turkey: 31 SA: 25
+
+pdf("Map_mean_point.pdf", width = 8, height = 7)
 ggplot() +
   geom_raster(data = mean_temp_df, aes(x = lon, y = lat, fill = Degree_C)) +
   scale_fill_viridis_c() +
@@ -136,6 +142,7 @@ ggplot() +
        x = "Longitude",
        y = "Latitude",
        fill = "Degree_C")
+dev.off()
 
 # Extract the temperature data for the specific point
 temperature_data <- as.numeric(extract(nc_file, cbind(specific_lon, specific_lat)))
@@ -153,7 +160,10 @@ global_plot <- ggplot() +
     title = paste("Surface Temperature at (lat:", specific_lat, ", lon:", specific_lon, ")", sep = ""),
   ) +
   theme_minimal()
+
+pdf("TimeSeriesGlobal.pdf", width = 8, height = 7)
 global_plot
+dev.off()
 
 # 2. Opening calibrated simulation of Lake Kivu - (LOCAL LAKES)
 
@@ -166,13 +176,10 @@ print(nc_file_local)
 
 # Get the time dimension 
 time_info_local <- time(nc_file_local)
-
-# Convert the time_info to Date format
 time_info_local <- as.Date(time_info, format="%Y-%m-%d")
 
 # Extract data in the same period as Global data 
 years <- format(time_info, "%Y")  # Extract year and month in "YYYY-MM" format
-unique_months <- unique(months)
 temp_same_period <- nc_file_local[[years %in% 1991:2000]]
 time_info_local <- time_info_local[years %in% 1991:2000]
 
@@ -182,7 +189,6 @@ temp_time_df_local <- temp_time_df_local[3:length(temp_time_df_local)] #neglect 
 
 # Extract the temperature data local lake
 temperature_data_local <- as.numeric(temp_time_df_local)
-
 temperature_data_local <- data.frame(time=time_info_local, temperature=temperature_data_local)
 
 global_local_plot <- global_plot +
@@ -193,59 +199,11 @@ global_local_plot <- global_plot +
     x = "Time (days)") +
   theme_minimal()
 
+pdf("TimeSeriesGlobalLocal.pdf", width = 8, height = 7)
 global_local_plot
+dev.off()
 
 #3. Plot a basic climate change analysis
-
-#Open files for historical ssp126, ssp370 and ssp585 scenarios
-nc_file_local_historical <- rast("input/gotm-ler_gfdl-esm4_w5e5_historical_2015soc_default_surftemp_kivu_daily_1850_2014.nc")
-nc_file_local_ssp126 <- rast("input/gotm-ler_gfdl-esm4_w5e5_ssp126_2015soc_default_surftemp_kivu_daily_2015_2100.nc")
-nc_file_local_ssp370 <- rast("input/gotm-ler_gfdl-esm4_w5e5_ssp370_2015soc_default_surftemp_kivu_daily_2015_2100.nc")
-nc_file_local_ssp585 <- rast("input/gotm-ler_gfdl-esm4_w5e5_ssp585_2015soc_default_surftemp_kivu_daily_2015_2100.nc")
-
-# Get the time dimension 
-time_historical <- time(nc_file_local_historical)
-time_historical <- as.Date(time_historical, format="%Y-%m-%d")
-time_future<- time(nc_file_local_ssp126)
-time_future <- as.Date(time_future, format="%Y-%m-%d")
-
-#load data and set format
-data_historical <- as.data.frame(nc_file_local_historical-273.15, xy = TRUE, na.rm = TRUE)
-data_historical <- data_historical[3:length(data_historical)] #neglect two first points, they are not temperatures 
-data_historical <- data.frame(time=time_historical, surftemp=as.numeric(data_historical))
-
-data_ssp126 <- as.data.frame(nc_file_local_ssp126-273.15, xy = TRUE, na.rm = TRUE)
-data_ssp126 <- data_ssp126[3:length(data_ssp126)] #neglect two first points, they are not temperatures 
-data_ssp126 <- data.frame(time=time_future, surftemp=as.numeric(data_ssp126))
-
-data_ssp370 <- as.data.frame(nc_file_local_ssp370-273.15, xy = TRUE, na.rm = TRUE)
-data_ssp370 <- data_ssp370[3:length(data_ssp370)] #neglect two first points, they are not temperatures 
-data_ssp370 <- data.frame(time=time_future, surftemp=as.numeric(data_ssp370))
-
-data_ssp585 <- as.data.frame(nc_file_local_ssp585-273.15, xy = TRUE, na.rm = TRUE)
-data_ssp585 <- data_ssp585[3:length(data_ssp585)] #neglect two first points, they are not temperatures 
-data_ssp585 <- data.frame(time=time_future, surftemp=as.numeric(data_ssp585))
-
-# Plot 
-
-ggplot() +
-  geom_line(data = data_historical, aes(x = time, y = surftemp), color = "black") +
-  geom_line(data = data_ssp126, aes(x = time, y = surftemp), color = "blue") +  
-  geom_line(data = data_ssp370, aes(x = time, y = surftemp), color = "orange") + 
-  geom_line(data = data_ssp585, aes(x = time, y = surftemp), color = "red") + 
-  #scale_y_continuous(limits = c(20, 28)) +
-  labs(
-    y = "Surface temp (ºC)",
-    x = "Time (days)") +
-  theme_minimal()
-
-
-
-
-# Load required libraries
-library(terra)
-library(ggplot2)
-
 # Define file paths
 files <- list(
   historical = "input/gotm-ler_gfdl-esm4_w5e5_historical_2015soc_default_surftemp_kivu_daily_1850_2014.nc",
@@ -279,6 +237,7 @@ data_ssp585$scenario <- "SSP5-8.5"
 data_combined <- rbind(data_historical, data_ssp126, data_ssp370, data_ssp585)
 
 # Plot the data
+pdf("ClimateChangeBasicAnalysis.pdf")
 ggplot(data_combined, aes(x = time, y = surftemp, color = scenario)) +
   geom_line() +
   labs(
@@ -288,5 +247,6 @@ ggplot(data_combined, aes(x = time, y = surftemp, color = scenario)) +
     color = "Scenario"
   ) +
   theme_minimal()
+dev.off()
 
 
