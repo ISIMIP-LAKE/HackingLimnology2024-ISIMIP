@@ -7,7 +7,7 @@
 library(terra)
 library(ggplot2)
 
-setwd("/HackingLimnology2024-ISIMIP/global-local_data/")
+setwd("~/Documents/Colaboraciones/HackingLimnology2024-ISIMIP/global-local_data/")
 
 ##····································DOWNLOAD DATA data.isimip.org portal································
 ##········································································································
@@ -195,6 +195,98 @@ global_local_plot <- global_plot +
 
 global_local_plot
 
+#3. Plot a basic climate change analysis
 
+#Open files for historical ssp126, ssp370 and ssp585 scenarios
+nc_file_local_historical <- rast("input/gotm-ler_gfdl-esm4_w5e5_historical_2015soc_default_surftemp_kivu_daily_1850_2014.nc")
+nc_file_local_ssp126 <- rast("input/gotm-ler_gfdl-esm4_w5e5_ssp126_2015soc_default_surftemp_kivu_daily_2015_2100.nc")
+nc_file_local_ssp370 <- rast("input/gotm-ler_gfdl-esm4_w5e5_ssp370_2015soc_default_surftemp_kivu_daily_2015_2100.nc")
+nc_file_local_ssp585 <- rast("input/gotm-ler_gfdl-esm4_w5e5_ssp585_2015soc_default_surftemp_kivu_daily_2015_2100.nc")
+
+# Get the time dimension 
+time_historical <- time(nc_file_local_historical)
+time_historical <- as.Date(time_historical, format="%Y-%m-%d")
+time_future<- time(nc_file_local_ssp126)
+time_future <- as.Date(time_future, format="%Y-%m-%d")
+
+#load data and set format
+data_historical <- as.data.frame(nc_file_local_historical-273.15, xy = TRUE, na.rm = TRUE)
+data_historical <- data_historical[3:length(data_historical)] #neglect two first points, they are not temperatures 
+data_historical <- data.frame(time=time_historical, surftemp=as.numeric(data_historical))
+
+data_ssp126 <- as.data.frame(nc_file_local_ssp126-273.15, xy = TRUE, na.rm = TRUE)
+data_ssp126 <- data_ssp126[3:length(data_ssp126)] #neglect two first points, they are not temperatures 
+data_ssp126 <- data.frame(time=time_future, surftemp=as.numeric(data_ssp126))
+
+data_ssp370 <- as.data.frame(nc_file_local_ssp370-273.15, xy = TRUE, na.rm = TRUE)
+data_ssp370 <- data_ssp370[3:length(data_ssp370)] #neglect two first points, they are not temperatures 
+data_ssp370 <- data.frame(time=time_future, surftemp=as.numeric(data_ssp370))
+
+data_ssp585 <- as.data.frame(nc_file_local_ssp585-273.15, xy = TRUE, na.rm = TRUE)
+data_ssp585 <- data_ssp585[3:length(data_ssp585)] #neglect two first points, they are not temperatures 
+data_ssp585 <- data.frame(time=time_future, surftemp=as.numeric(data_ssp585))
+
+# Plot 
+
+ggplot() +
+  geom_line(data = data_historical, aes(x = time, y = surftemp), color = "black") +
+  geom_line(data = data_ssp126, aes(x = time, y = surftemp), color = "blue") +  
+  geom_line(data = data_ssp370, aes(x = time, y = surftemp), color = "orange") + 
+  geom_line(data = data_ssp585, aes(x = time, y = surftemp), color = "red") + 
+  #scale_y_continuous(limits = c(20, 28)) +
+  labs(
+    y = "Surface temp (ºC)",
+    x = "Time (days)") +
+  theme_minimal()
+
+
+
+
+# Load required libraries
+library(terra)
+library(ggplot2)
+
+# Define file paths
+files <- list(
+  historical = "input/gotm-ler_gfdl-esm4_w5e5_historical_2015soc_default_surftemp_kivu_daily_1850_2014.nc",
+  ssp126 = "input/gotm-ler_gfdl-esm4_w5e5_ssp126_2015soc_default_surftemp_kivu_daily_2015_2100.nc",
+  ssp370 = "input/gotm-ler_gfdl-esm4_w5e5_ssp370_2015soc_default_surftemp_kivu_daily_2015_2100.nc",
+  ssp585 = "input/gotm-ler_gfdl-esm4_w5e5_ssp585_2015soc_default_surftemp_kivu_daily_2015_2100.nc"
+)
+
+# Function to load and process NetCDF files
+load_and_process_nc <- function(file_path) {
+  nc_data <- rast(file_path)
+  time_data <- as.Date(time(nc_data), format = "%Y-%m-%d")
+  data <- as.data.frame(nc_data - 273.15, xy = TRUE, na.rm = TRUE)[-c(1, 2)]
+  data <- data.frame(time = time_data, surftemp = as.numeric(data))
+  return(data)
+}
+
+# Load and process all scenarios
+data_historical <- load_and_process_nc(files$historical)
+data_ssp126 <- load_and_process_nc(files$ssp126)
+data_ssp370 <- load_and_process_nc(files$ssp370)
+data_ssp585 <- load_and_process_nc(files$ssp585)
+
+# Add a 'scenario' column to each data frame for the legend
+data_historical$scenario <- "Historical"
+data_ssp126$scenario <- "SSP1-2.6"
+data_ssp370$scenario <- "SSP3-7.0"
+data_ssp585$scenario <- "SSP5-8.5"
+
+# Combine all data frames
+data_combined <- rbind(data_historical, data_ssp126, data_ssp370, data_ssp585)
+
+# Plot the data
+ggplot(data_combined, aes(x = time, y = surftemp, color = scenario)) +
+  geom_line() +
+  labs(
+    y = "Surface temp (ºC)",
+    x = "Time (days)",
+    title = "Surface Temperature over time for historical ssp126, ssp370 and ssp585",
+    color = "Scenario"
+  ) +
+  theme_minimal()
 
 
