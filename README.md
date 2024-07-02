@@ -1,11 +1,15 @@
-# Hacking Limnology 2024 workshop: Modeling the impacts of Climate Change on Lake Ecosystems (ISIMIP)
+# Hacking Limnology 2024 Workshop: Modeling the Impacts of Climate Change on Lake Ecosystems (ISIMIP)
 
 To adapt management for climate change impacts on lakes, there is an increased need to project future changes in lake thermal structure and resulting changes in lake biogeochemistry. Consistent ensemble modeling studies to project global water quality changes are needed for policy-relevant documents, such as the Assessment Reports of the Intergovernmental Panel on Climate Change (IPCC). The international Lake Sector of the Inter-Sectoral Impact Model Intercomparison Project (ISIMIP) aims to fulfill this need for simulating climate change impacts on lakes using an ensemble of lake models and climate change scenarios. ISIMP prescribes lake simulations driven by climate forcing from gridded observations and different Earth system models under various representative greenhouse gas concentration pathways (RCPs), all consistently bias-corrected on a global grid. The ISIMIP Lake Sector is the largest international effort to project future water temperature, thermal structure, and ice phenology of lakes at local and global scales and paves the way for future simulations of the impacts of climate change on water quality and biogeochemistry in lakes.
 
 -----
 
+:computer: [Workshop information](https://aquaticdatasciopensci.github.io/day1-climate-change/)
+
 :email: [Contact](mailto:rladwig@ecos.au.dk)
-:teacher: Daniel Mercado (Catalan Institute for Water Resources Research), Ana Isabel Ayala-Zamora (Uppsala University), Robert Ladwig (Aarhus University)
+
+:teacher: **Organisers:** Daniel Mercado (Catalan Institute for Water Resources Research), Ana Isabel Ayala-Zamora (Uppsala University), Robert Ladwig (Aarhus University)
+
 -----
 
 ## Description
@@ -16,7 +20,7 @@ This workshop material highlights how to access and use modeled ISIMIP data for 
 
   - Accessing and visualising global simulated lake data
   - Accessing local lake data
-  - Analysing local lake trends
+  - Analysing local lake trends for physical variables
   - Coupling local lake model output with custom code for water quality modeling
   - Coupling lake model output with watershed simulations for land use analysis
 
