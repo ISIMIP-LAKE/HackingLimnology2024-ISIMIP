@@ -8,7 +8,7 @@ To adapt management for climate change impacts on lakes, there is an increased n
 
 :email: [Contact](mailto:rladwig@ecos.au.dk)
 
-:teacher: **Organisers:** Daniel Mercado (Catalan Institute for Water Resources Research), Ana Isabel Ayala-Zamora (Uppsala University), Robert Ladwig (Aarhus University)
+:teacher: **Organisers:** Daniel Mercado-Bettín (Center of Advanced Studies of Blanes), Ana Isabel Ayala-Zamora (Uppsala University), Robert Ladwig (Aarhus University)
 
 -----
 
@@ -38,5 +38,8 @@ This workshop material highlights how to access and use modeled ISIMIP data for 
   install.packages("tidyverse")
   install.packages("reshape2")
   install.packages("patchwork")
+  install.packages("terra")
+  install.packages("ggplot2")
+
   ```
 -----
