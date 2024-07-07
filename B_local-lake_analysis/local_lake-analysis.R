@@ -1,28 +1,37 @@
 ## HACKING LIMNOLOGY 2024
 # Climate Change - ISIMIP
 # author: Robert Ladwig
+# local lake analysis
 
-library(ncdf4)
-library(tidyverse)
-library(rLakeAnalyzer)
-library(reshape2)
-library(patchwork)
+Sys.setenv(LANG = "en")
+
+# read in libraries
+library(ncdf4) # for ncdf4 data storage
+library(tidyverse) # awesome package for data analysis
+library(rLakeAnalyzer) # great for calculating physical lake indices
+library(reshape2) # data manipulations
+library(patchwork) # visualizations
 
 setwd('C:/Users/au740615/Documents/Projects/ISIMIP-LAKE/HackingLimnology-2024/robert_HL/robert_HL')
 
 # load local ISIMIP output for Lake Mendota, WI, "the best studied lake in the world"
 nc <- nc_open(filename = 'gotm-ler_gfdl-esm4_w5e5_ssp585_2015soc_default_watertemp_mendota_daily_2015_2100.nc')
 print(nc)
+
+# output variable names
 attributes(nc$var)$names
 
-# get tempora dimension
+# get temporal dimension
 time <- ncvar_get(nc, "time")
 nc$dim$time$units
 
+# get time information
 time <- as.POSIXct('1601-01-01 00:00:00') + days(time)
 
 # get simulated water temperature data
 temp <- ncvar_get(nc, "watertemp")
+
+# get depth data
 depth <- ncvar_get(nc, "depth")
 
 # close nc
@@ -66,6 +75,7 @@ g3 <- ggplot(ts_surface, aes(datetime, wind_spd)) +
 
 g1 / g2 / g3
 
+# what is the trend?
 annual_surface <- ts_surface %>%
   mutate(year = year(datetime)) %>%
   group_by(year) %>%
@@ -78,13 +88,19 @@ summary(lm(avg_atmp ~ year, data = annual_surface))
 summary(lm(avg_windspd ~ year, data = annual_surface))
 
 # how will climate change affect lake stability?
+# Schmidt stability tells us how much energy is needed to mix the entire water 
+# column to uniform temperatures without affecting the amount of internal energy
+# Idso (1973) https://doi.org/10.4319/lo.1973.18.4.0681
 ts_St <- ts.schmidt.stability(wtr = temp_df, bathy = data.frame('depths' = hyps_data$DEPTH,
                                                        'areas' = hyps_data$BATHYMETRY_AREA))
 
 ggplot(ts_St) +
   geom_point(aes(datetime, schmidt.stability))
 
-
+# lake number is the ratio of the moments about the center of volume of the water 
+# body, of the stabilizing force of gravity associated with density stratification 
+# to the destabilizing forces supplied by wind, cooling, inflow, etc.
+# Robertson & Imberger (1994) http://dx.doi.org/10.1002/iroh.19940790202 
 ts_LN <- ts.lake.number(wtr = temp_df, wnd = data.frame('datetime' = meteo_df$time,
                                                         'wsp' = meteo_df$sfcwind), 
                         wnd.height = 10, 
@@ -95,7 +111,11 @@ ts_LN <- ts.lake.number(wtr = temp_df, wnd = data.frame('datetime' = meteo_df$ti
 ggplot(ts_LN) +
   geom_point(aes(datetime, lake.number))
 
+# take-aways:
+#
+
 # run a custom model with ISIMIP data
+# one year
 input_data <- temp_df %>% filter(datetime <= '2016-01-01')
 
 time_ind <- length(input_data$datetime)
@@ -109,6 +129,7 @@ colnames(df_temp) <- c("time", as.character(paste0(seq(1,ncol(input_data) -1))))
 m.df_temp <- reshape2::melt(df_temp, "time")
 m.df_temp$time <- time
 
+# plot temperature data
 ggplot(m.df_temp, aes(as.numeric(time), as.numeric(variable))) +
   geom_raster(aes(fill = as.numeric(value)), interpolate = TRUE) +
   scale_fill_gradientn(limits = c(0, 30),
@@ -118,7 +139,7 @@ ggplot(m.df_temp, aes(as.numeric(time), as.numeric(variable))) +
   labs(fill = 'wtemp [dC]') +
   scale_y_continuous(trans = "reverse")
 
-
+# get eddy diffusivity values based on buoyancy frequency
 K <- matrix(0, nrow = space_ind, ncol = time_ind)  
 min_n2 <- 7 * 10**(-5)
 
@@ -142,6 +163,7 @@ colnames(df_K) <- c("time", as.character(paste0(seq(1,nrow(K)))))
 m.df_K <- reshape2::melt(df_K, "time")
 m.df_K$time <- time
 
+# plot our estimates of eddy diffuvities
 ggplot(m.df_K, aes(as.numeric(time), as.numeric(variable))) +
   geom_raster(aes(fill = as.numeric(value)), interpolate = TRUE) +
   scale_fill_gradientn(limits = c(1e-6,1e-4),
@@ -152,21 +174,29 @@ ggplot(m.df_K, aes(as.numeric(time), as.numeric(variable))) +
   scale_y_continuous(trans = "reverse")
 
 
-
+# our simple water quality model of a concentration C
+# dC / dt = K d^2C / dz^2 
+# z = 0: constant C
+# z = z_max: dC / dt = - k C
+K_multiplier = 1
 
 conc <- matrix(0, nrow = space_ind, ncol = time_ind * 24) 
 # our results in a matrix: 100 seconds times 100 m over the depth
-diff = K  # diffusion coefficient, unit: m2/s
+diff = K / K_multiplier # diffusion coefficient, unit: m2/s
 dx = diff(depth) # our spatial step, unit: m
 dt = 3600 #3600 * 24 # our time step, unit: s
-conc[, 1] = dnorm(seq(1,nrow(conc),1), mean = nrow(conc)/2, sd = 1) * 100
+conc[, 1] = 10 # dnorm(seq(1,nrow(conc),1), mean = nrow(conc)/2, sd = 1) * 100
 # initial conc. is defined vertically through a normal distribution, unit: -
 
 for (n in 2:ncol(conc)){ # time index
-  conc[1, n] = 50
+  conc[1, n] = 100
+  conc[i, (nrow(conc))] = conc[i-1, (nrow(conc))] * exp(-0.1 * dt) #- 0.1 * conc[i-1, (nrow(conc))]
   for (i in 2:(nrow(conc)-1)){ # space index
     conc[i, n] = conc[i, n-1] + diff[i, max((n %/% 24 + 1)-1, 1)] * dt / dx[i]**2 * (conc[i+1, n-1] - 2 * conc[i, n-1] + conc[i-1, n-1]) # our FTCS scheme 
-  }
+    # conc[i, n] = conc[i, n-1]  * exp(- 1e-20 * dt)
+
+  
+    }
 }
 
 which(conc == Inf, arr.ind = TRUE)
@@ -180,6 +210,8 @@ colnames(df) <- c("time", as.character(paste0(seq(1,nrow(conc)))))
 m.df <- reshape2::melt(df, "time")
 m.df$time <- time
 
+
+# plot the concentration map
 ggplot(m.df, aes(as.numeric(time), as.numeric(variable))) +
   geom_raster(aes(fill = as.numeric(value)), interpolate = TRUE) +
   scale_fill_gradientn(limits = c(0,100),
@@ -188,3 +220,4 @@ ggplot(m.df, aes(as.numeric(time), as.numeric(variable))) +
   ylab('Depth') +
   labs(fill = 'Conc. [%]') +
   scale_y_continuous(trans = "reverse")
+
