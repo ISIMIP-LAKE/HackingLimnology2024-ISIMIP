@@ -38,5 +38,9 @@ This workshop material highlights how to access and use modeled ISIMIP data for 
   install.packages("tidyverse")
   install.packages("reshape2")
   install.packages("patchwork")
+  install.packages("terra")
+  install.packages("gganimate")
+  install.packages("transformr")
+  install.packages("gifski")
   ```
 -----
