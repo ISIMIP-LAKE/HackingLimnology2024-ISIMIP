@@ -12,11 +12,12 @@
 Sys.setenv(LANG = "en")
 
 # read in libraries
-library(ncdf4) # for ncdf4 data storage
-library(tidyverse) # awesome package for data analysis
-library(rLakeAnalyzer) # great for calculating physical lake indices
-library(reshape2) # data manipulations
-library(patchwork) # visualizations
+library(ncdf4)          # for ncdf4 data storage
+library(tidyverse)      # awesome package for data analysis
+library(rLakeAnalyzer)  # great for calculating physical lake indices
+library(reshape2)       # data manipulations
+library(lubridate)       # data manipulations
+library(patchwork)      # visualizations
 
 setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
@@ -100,7 +101,7 @@ summary(lm(avg_windspd ~ year, data = annual_surface))
 
 ## (2) exploring changes in lake physics (water column stability)
 # how will climate change affect lake stability?
-# Schmidt stability tells us how much energy is needed to mix the entire water 
+# Schmidt stability (J/m2) tells us how much energy is needed to mix the entire water 
 # column to uniform temperatures without affecting the amount of internal energy
 # Idso (1973) https://doi.org/10.4319/lo.1973.18.4.0681
 ts_St <- ts.schmidt.stability(wtr = temp_df, bathy = data.frame('depths' = hyps_data$DEPTH,
@@ -109,7 +110,7 @@ ts_St <- ts.schmidt.stability(wtr = temp_df, bathy = data.frame('depths' = hyps_
 ggplot(ts_St) +
   geom_point(aes(datetime, schmidt.stability))
 
-# lake number is the ratio of the moments about the center of volume of the water 
+# Lake Number (dimensionless) is the ratio of the moments about the center of volume of the water 
 # body, of the stabilizing force of gravity associated with density stratification 
 # to the destabilizing forces supplied by wind, cooling, inflow, etc.
 # Robertson & Imberger (1994) http://dx.doi.org/10.1002/iroh.19940790202 
