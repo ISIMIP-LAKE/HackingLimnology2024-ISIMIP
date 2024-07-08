@@ -1,7 +1,13 @@
 ## HACKING LIMNOLOGY 2024
 # Climate Change - ISIMIP
 # author: Robert Ladwig
-# local lake analysis
+# email:  rladwig@ecos.au.dk
+# theme:  LOCAL LAKE ANALYSIS
+
+# this part deals with analysing local lake output
+# (1) quantifying long-term trends
+# (2) exploring changes in lake physics (water column stability)
+# (3) running a custom "water quality" model
 
 Sys.setenv(LANG = "en")
 
@@ -12,10 +18,10 @@ library(rLakeAnalyzer) # great for calculating physical lake indices
 library(reshape2) # data manipulations
 library(patchwork) # visualizations
 
-setwd('C:/Users/au740615/Documents/Projects/ISIMIP-LAKE/HackingLimnology-2024/robert_HL/robert_HL')
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 # load local ISIMIP output for Lake Mendota, WI, "the best studied lake in the world"
-nc <- nc_open(filename = 'gotm-ler_gfdl-esm4_w5e5_ssp585_2015soc_default_watertemp_mendota_daily_2015_2100.nc')
+nc <- nc_open(filename = 'data/gotm-ler_gfdl-esm4_w5e5_ssp585_2015soc_default_watertemp_mendota_daily_2015_2100.nc')
 print(nc)
 
 # output variable names
@@ -38,11 +44,12 @@ depth <- ncvar_get(nc, "depth")
 nc_close(nc)
 
 # get meteorological driver data
-meteo_df <- read_csv(file = 'gfdl-esm4_ssp585_bias-adjusted_mendota_daily_2015_2100.csv')
+meteo_df <- read_csv(file = 'data/gfdl-esm4_ssp585_bias-adjusted_mendota_daily_2015_2100.csv')
 
 # get local information
-hyps_data <- read_csv(file = 'Mendota_hypsometry.csv')
+hyps_data <- read_csv(file = 'data/Mendota_hypsometry.csv')
 
+## (1) quantifying long-term trends
 # prepare for rLakeAnalyzer
 temp_df <- data.frame(t(temp))
 temp_df <- temp_df - 273.15
@@ -87,6 +94,11 @@ summary(lm(avg_temp ~ year, data = annual_surface))
 summary(lm(avg_atmp ~ year, data = annual_surface))
 summary(lm(avg_windspd ~ year, data = annual_surface))
 
+# trend of surface water temp.: 
+# trend of air temp.:           
+# trend of wind speed:          
+
+## (2) exploring changes in lake physics (water column stability)
 # how will climate change affect lake stability?
 # Schmidt stability tells us how much energy is needed to mix the entire water 
 # column to uniform temperatures without affecting the amount of internal energy
@@ -101,6 +113,9 @@ ggplot(ts_St) +
 # body, of the stabilizing force of gravity associated with density stratification 
 # to the destabilizing forces supplied by wind, cooling, inflow, etc.
 # Robertson & Imberger (1994) http://dx.doi.org/10.1002/iroh.19940790202 
+# LN ==1:   wind is sufficient to deflect thermocline
+# LN >> 1:  stratification is strong and stable
+# LN << 1:  stratification is weak, strong internal waves, deep mixing
 ts_LN <- ts.lake.number(wtr = temp_df, wnd = data.frame('datetime' = meteo_df$time,
                                                         'wsp' = meteo_df$sfcwind), 
                         wnd.height = 10, 
@@ -112,10 +127,13 @@ ggplot(ts_LN) +
   geom_point(aes(datetime, lake.number))
 
 # take-aways:
-#
+# Schmidt stability (water column stability): 
+# Lake Number (deep mixing):                  
 
+
+# (3) running a custom "water quality" model
 # run a custom model with ISIMIP data
-# one year
+# one year of Lake Mendota
 input_data <- temp_df %>% filter(datetime <= '2016-01-01')
 
 time_ind <- length(input_data$datetime)
@@ -163,7 +181,7 @@ colnames(df_K) <- c("time", as.character(paste0(seq(1,nrow(K)))))
 m.df_K <- reshape2::melt(df_K, "time")
 m.df_K$time <- time
 
-# plot our estimates of eddy diffuvities
+# plot our estimates of eddy diffusivities
 ggplot(m.df_K, aes(as.numeric(time), as.numeric(variable))) +
   geom_raster(aes(fill = as.numeric(value)), interpolate = TRUE) +
   scale_fill_gradientn(limits = c(1e-6,1e-4),
@@ -178,24 +196,21 @@ ggplot(m.df_K, aes(as.numeric(time), as.numeric(variable))) +
 # dC / dt = K d^2C / dz^2 
 # z = 0: constant C
 # z = z_max: dC / dt = - k C
-K_multiplier = 1
+K_multiplier = 1 # let's play with this later
 
 conc <- matrix(0, nrow = space_ind, ncol = time_ind * 24) 
-# our results in a matrix: 100 seconds times 100 m over the depth
+
 diff = K / K_multiplier # diffusion coefficient, unit: m2/s
 dx = diff(depth) # our spatial step, unit: m
-dt = 3600 #3600 * 24 # our time step, unit: s
-conc[, 1] = 10 # dnorm(seq(1,nrow(conc),1), mean = nrow(conc)/2, sd = 1) * 100
+dt = 3600 # our time step, unit: s
+conc[, 1] = 10 
 # initial conc. is defined vertically through a normal distribution, unit: -
 
 for (n in 2:ncol(conc)){ # time index
   conc[1, n] = 100
-  conc[i, (nrow(conc))] = conc[i-1, (nrow(conc))] * exp(-0.1 * dt) #- 0.1 * conc[i-1, (nrow(conc))]
+  conc[(nrow(conc)), n] = conc[(nrow(conc)), n-1] * exp(-0.1 * dt) 
   for (i in 2:(nrow(conc)-1)){ # space index
     conc[i, n] = conc[i, n-1] + diff[i, max((n %/% 24 + 1)-1, 1)] * dt / dx[i]**2 * (conc[i+1, n-1] - 2 * conc[i, n-1] + conc[i-1, n-1]) # our FTCS scheme 
-    # conc[i, n] = conc[i, n-1]  * exp(- 1e-20 * dt)
-
-  
     }
 }
 
