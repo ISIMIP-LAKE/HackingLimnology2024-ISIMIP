@@ -1,5 +1,9 @@
-#1 July 2024
-#Author: Daniel Mercado-Bettín
+## HACKING LIMNOLOGY 2024
+# Climate Change - ISIMIP
+# author: Daniel Mercado-Bettín
+# email:  daniel.mercado@ceab.csic.es
+# theme:  GLOBAL LOCAL DATA
+# date: 1 July 2024
 
 # Load necessary libraries
 #install.packages("terra")
@@ -7,7 +11,7 @@
 library(terra)
 library(ggplot2)
 
-setwd("~/Documents/Colaboraciones/HackingLimnology2024-ISIMIP/global-local_data/")
+setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 
 ##····································DOWNLOAD DATA data.isimip.org portal································
 ##········································································································
@@ -51,7 +55,7 @@ temp_df <- as.data.frame(temp_at_time-273.15, xy = TRUE, na.rm = TRUE)
 colnames(temp_df) <- c("lon", "lat", "Degree_C")
 
 # Plot the data using ggplot2
-pdf("Map_1day.pdf", width = 8, height = 7)
+pdf("output/Map_1day.pdf", width = 8, height = 7)
 ggplot(temp_df, aes(x = lon, y = lat, fill = Degree_C)) +
   geom_raster() +
   scale_fill_viridis_c() +
@@ -71,7 +75,7 @@ mean_temp_df <- as.data.frame(mean_temp-273.15, xy = TRUE, na.rm = TRUE)
 colnames(mean_temp_df) <- c("lon", "lat", "Degree_C")
 
 # Plot the data using ggplot2
-pdf("Map_mean.pdf", width = 8, height = 7)
+pdf("output/Map_mean.pdf", width = 8, height = 7)
 ggplot(mean_temp_df, aes(x = lon, y = lat, fill = Degree_C)) +
   geom_raster() +
   scale_fill_viridis_c() +
@@ -115,7 +119,7 @@ p <- ggplot(temp_df_animate, aes(x = lon, y = lat, fill = Degree_C)) +
 animate(p, nframes = num_time_steps, fps = 10, width = 800, height = 600, renderer = gifski_renderer())
 
 # Save the animation to a file
-anim_save("Map_animation.gif", animation = last_animation())
+anim_save("output/Map_animation.gif", animation = last_animation())
 
 #····································SELECT ONE POINT, COMPARISON WITH LOCAL LAKES·····················...
 ##········································································································
@@ -129,7 +133,7 @@ anim_save("Map_animation.gif", animation = last_animation())
 specific_lat <- -2.04 #-2.04  # Replace with your latitude Spain: 39; Turkey: 39 SA: -29
 specific_lon <- 29.18 #29.18  # Replace with your longitude Spain: -5 Turkey: 31 SA: 25
 
-pdf("Map_mean_point.pdf", width = 8, height = 7)
+pdf("output/Map_mean_point.pdf", width = 8, height = 7)
 ggplot() +
   geom_raster(data = mean_temp_df, aes(x = lon, y = lat, fill = Degree_C)) +
   scale_fill_viridis_c() +
@@ -161,7 +165,7 @@ global_plot <- ggplot() +
   ) +
   theme_minimal()
 
-pdf("TimeSeriesGlobal.pdf", width = 8, height = 7)
+pdf("ouput/TimeSeriesGlobal.pdf", width = 8, height = 7)
 global_plot
 dev.off()
 
@@ -199,7 +203,7 @@ global_local_plot <- global_plot +
     x = "Time (days)") +
   theme_minimal()
 
-pdf("TimeSeriesGlobalLocal.pdf", width = 8, height = 7)
+pdf("output/TimeSeriesGlobalLocal.pdf", width = 8, height = 7)
 global_local_plot
 dev.off()
 
@@ -237,7 +241,7 @@ data_ssp585$scenario <- "SSP5-8.5"
 data_combined <- rbind(data_historical, data_ssp126, data_ssp370, data_ssp585)
 
 # Plot the data
-pdf("ClimateChangeBasicAnalysis.pdf")
+pdf("output/ClimateChangeBasicAnalysis.pdf")
 ggplot(data_combined, aes(x = time, y = surftemp, color = scenario)) +
   geom_line() +
   labs(
