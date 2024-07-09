@@ -9,7 +9,13 @@
 # (2) exploring changes in lake physics (water column stability)
 # (3) running a custom "water quality" model
 
+# note, we will do a crash course in physical limnology. i am very sorry for that.
+# keep in mind, water density is a function of temperature and salinity
+# and density peaks at about 4 dC
+# a stable density profile means that density has to increase over depth
+
 Sys.setenv(LANG = "en")
+Sys.setenv(TZ = "UTC")
 
 # read in libraries
 library(ncdf4)          # for ncdf4 data storage
@@ -117,7 +123,8 @@ ggplot(ts_St) +
 # LN ==1:   wind is sufficient to deflect thermocline
 # LN >> 1:  stratification is strong and stable
 # LN << 1:  stratification is weak, strong internal waves, deep mixing
-ts_LN <- ts.lake.number(wtr = temp_df, wnd = data.frame('datetime' = meteo_df$time,
+ts_LN <- ts.lake.number(wtr = temp_df %>% mutate(datetime = as.Date(datetime)), 
+                        wnd = data.frame('datetime' = as.Date(meteo_df$time),
                                                         'wsp' = meteo_df$sfcwind), 
                         wnd.height = 10, 
                         bathy = data.frame('depths' = hyps_data$DEPTH,
