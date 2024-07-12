@@ -22,7 +22,7 @@ This workshop material highlights how to access and use modeled ISIMIP data for 
   - Accessing local lake data
   - Analysing local lake trends for physical variables
   - Coupling local lake model output with custom code for water quality modeling
-  - Coupling global water model output with global lakes
+  - Coupling global water model outputs with global lakes
 
 ## Prerequisites
 
