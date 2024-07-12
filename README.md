@@ -46,5 +46,8 @@ This workshop material highlights how to access and use modeled ISIMIP data for 
   install.packages("transformr")
   install.packages("gifski")
   install.packages("lubridate")
+  install.packages("data.table")
+  install.packages("dplyr")
+  install.packages("ggplot2")
   ```
 -----
