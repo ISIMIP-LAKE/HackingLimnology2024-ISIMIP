@@ -5,9 +5,10 @@
 # theme:  LOCAL LAKE ANALYSIS
 
 # this part deals with analysing local lake output
-# (1) quantifying long-term trends
+# (1) quantifying long-term trends of water temp, air temp, and wind speed
 # (2) exploring changes in lake physics (water column stability)
-# (3) running a custom "water quality" model
+# (3) running a custom "water quality" model that uses ISIMIP data as input
+# (this is an example of a very simple model)
 
 # note, we will do a crash course in physical limnology. i am very sorry for that.
 # keep in mind, water density is a function of temperature and salinity
@@ -116,8 +117,8 @@ ts_St <- ts.schmidt.stability(wtr = temp_df, bathy = data.frame('depths' = hyps_
 ggplot(ts_St) +
   geom_point(aes(datetime, schmidt.stability))
 
-# Lake Number (dimensionless) is the ratio of the moments about the center of volume of the water 
-# body, of the stabilizing force of gravity associated with density stratification 
+# Lake Number (dimensionless) is the ratio of the moments of the stabilizing 
+# force of gravity associated with density stratification 
 # to the destabilizing forces supplied by wind, cooling, inflow, etc.
 # Robertson & Imberger (1994) http://dx.doi.org/10.1002/iroh.19940790202 
 # LN ==1:   wind is sufficient to deflect thermocline
@@ -133,6 +134,14 @@ ts_LN <- ts.lake.number(wtr = temp_df %>% mutate(datetime = as.Date(datetime)),
 
 ggplot(ts_LN) +
   geom_point(aes(datetime, lake.number))
+
+n_LN <- ts_LN %>% mutate(year = year(datetime)) %>%
+  group_by(year) %>%
+  summarize(n = sum(lake.number > 1, na.rm = T)) 
+
+ggplot(n_LN, aes(year, n)) +
+  geom_point()+
+  geom_smooth(method = "lm")
 
 # take-aways:
 # Schmidt stability (water column stability): 
@@ -208,15 +217,16 @@ K_multiplier = 1 # let's play with this later
 
 conc <- matrix(0, nrow = space_ind, ncol = time_ind * 24) 
 
-diff = K / K_multiplier # diffusion coefficient, unit: m2/s
+diff = K * K_multiplier # diffusion coefficient, unit: m2/s
+depl_flux = 0.1 # depletion flux at lowest layer, unit: [-] per s
 dx = diff(depth) # our spatial step, unit: m
 dt = 3600 # our time step, unit: s
 conc[, 1] = 10 
-# initial conc. is defined vertically through a normal distribution, unit: -
+# initial conc. is defined vertically as uniform distribution, unit: [-]
 
 for (n in 2:ncol(conc)){ # time index
   conc[1, n] = 100
-  conc[(nrow(conc)), n] = conc[(nrow(conc)), n-1] * exp(-0.1 * dt) 
+  conc[(nrow(conc)), n] = conc[(nrow(conc)), n-1] * exp(-depl_flux * dt) 
   for (i in 2:(nrow(conc)-1)){ # space index
     conc[i, n] = conc[i, n-1] + diff[i, max((n %/% 24 + 1)-1, 1)] * dt / dx[i]**2 * (conc[i+1, n-1] - 2 * conc[i, n-1] + conc[i-1, n-1]) # our FTCS scheme 
     }
@@ -243,4 +253,16 @@ ggplot(m.df, aes(as.numeric(time), as.numeric(variable))) +
   ylab('Depth') +
   labs(fill = 'Conc. [%]') +
   scale_y_continuous(trans = "reverse")
+
+# explore our model:
+
+# assume lower diffusivity
+K_multiplier = 1e-2
+
+# lower depletion flux
+depl_flux = 1e-3
+
+# future:
+input_data <- temp_df %>% filter(datetime >= '2090-01-01' &
+                                   datetime <= '2099-01-01')
 
