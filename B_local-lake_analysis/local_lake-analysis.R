@@ -117,6 +117,15 @@ ts_St <- ts.schmidt.stability(wtr = temp_df, bathy = data.frame('depths' = hyps_
 ggplot(ts_St) +
   geom_point(aes(datetime, schmidt.stability))
 
+ggplot(ts_St %>% mutate(decade =  year(datetime)- year(datetime) %% 10 ), 
+       aes(schmidt.stability, fill = as.factor(decade))) +
+  geom_density(alpha =.3)
+
+ggplot(ts_St %>% mutate(decade =  year(datetime)- year(datetime) %% 10 ) %>%
+         filter(decade == 2020 | decade == 2090), 
+       aes(schmidt.stability, fill = as.factor(decade))) +
+  geom_density(alpha =.3)
+
 # Lake Number (dimensionless) is the ratio of the moments of the stabilizing 
 # force of gravity associated with density stratification 
 # to the destabilizing forces supplied by wind, cooling, inflow, etc.
