@@ -55,6 +55,7 @@ fdir <- ncvar_get(nc_fdir,"flowdirection") # flow direction (1: east, 2: south e
 #                                                            0: sink or outlet to the ocean)
 lon_fdir <- ncvar_get(nc_fdir,"lon") # longitude (degree) 
 lat_fdir <- ncvar_get(nc_fdir,"lat") # latitude (degree)
+nc_close(nc_fdir) # close a netCDF file
 
 # 2. data: Lake (global)
 # https://github.com/icra/ISIMIP_Lake_Sector
